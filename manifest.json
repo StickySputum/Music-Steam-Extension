@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "SoundCloud Remote",
+  "version": "1.0",
+  "description": "Управление SoundCloud через WebSocket",
+  "permissions": ["tabs", "scripting"],
+  "host_permissions": [
+    "*://soundcloud.com/*",
+    "*://*.soundcloud.com/*",
+    "http://localhost:3000/*",
+    "ws://localhost:3000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://soundcloud.com/*", "*://*.soundcloud.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ]
+
+}

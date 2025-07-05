@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SoundCloud Remote</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    button {
+      background: #ff5500;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    #status {
+      margin-top: 20px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>SoundCloud Remote</h1>
+  <button id="playBtn">▶️ Play/Pause</button>
+  <div id="status">Status: Disconnected</div>
+
+  <script>
+    const btn = document.getElementById('playBtn');
+    const status = document.getElementById('status');
+    let ws;
+
+    function connect() {
+      ws = new WebSocket('ws://localhost:3000');
+
+      ws.onopen = () => {
+        status.textContent = 'Status: Connected';
+        btn.disabled = false;
+      };
+
+      ws.onclose = () => {
+        status.textContent = 'Status: Disconnected';
+        btn.disabled = true;
+        setTimeout(connect, 1000);
+      };
+    }
+
+    btn.addEventListener('click', () => {
+      ws.send('play');
+    });
+
+    connect();
+  </script>
+</body>
+</html>
