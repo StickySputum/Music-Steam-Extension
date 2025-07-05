@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "SoundCloud Remote",
   "version": "1.0",
-  "description": "Управление SoundCloud через WebSocket",
+  "description": "Управление SoundCloud",
   "permissions": ["tabs", "scripting"],
   "host_permissions": [
     "*://soundcloud.com/*",
@@ -21,5 +21,4 @@
       "all_frames": true
     }
   ]
-
 }

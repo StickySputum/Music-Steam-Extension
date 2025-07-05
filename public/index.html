@@ -3,52 +3,149 @@
 <head>
   <title>SoundCloud Remote</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-    button {
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f8f8f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .player {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      padding: 20px;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+    }
+    .track-info {
+      margin-bottom: 20px;
+      height: 40px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 15px;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    .control-btn {
+      background: none;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #333;
+      font-size: 20px;
+    }
+    .play-btn {
+      width: 50px;
+      height: 50px;
       background: #ff5500;
       color: white;
-      border: none;
-      padding: 15px 30px;
-      font-size: 18px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 10px;
+      font-size: 24px;
     }
-    #status {
-      margin-top: 20px;
+    .status {
+      font-size: 12px;
       color: #666;
+      margin-top: 10px;
     }
+    .connected { color: #00aa00; }
+    .disconnected { color: #ff3333; }
   </style>
 </head>
 <body>
-  <h1>SoundCloud Remote</h1>
-  <button id="playBtn">▶️ Play/Pause</button>
-  <div id="status">Status: Disconnected</div>
+  <div class="player">
+    <div class="track-info" id="trackTitle">Not playing</div>
+    <div class="controls">
+      <button class="control-btn" id="prevBtn">⏮</button>
+      <button class="play-btn" id="playBtn">▶</button>
+      <button class="control-btn" id="nextBtn">⏭</button>
+    </div>
+    <div class="status" id="status">Connecting...</div>
+  </div>
 
   <script>
-    const btn = document.getElementById('playBtn');
-    const status = document.getElementById('status');
+    const playBtn = document.getElementById('playBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const trackTitleEl = document.getElementById('trackTitle');
+    const statusEl = document.getElementById('status');
+
+    let isPlaying = false;
     let ws;
 
     function connect() {
       ws = new WebSocket('ws://localhost:3000');
 
       ws.onopen = () => {
-        status.textContent = 'Status: Connected';
-        btn.disabled = false;
+        statusEl.textContent = 'Connected to SoundCloud';
+        statusEl.className = 'status connected';
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'playbackUpdate') {
+          updatePlaybackState(data.state);
+        }
       };
 
       ws.onclose = () => {
-        status.textContent = 'Status: Disconnected';
-        btn.disabled = true;
-        setTimeout(connect, 1000);
+        statusEl.textContent = 'Disconnected - Reconnecting...';
+        statusEl.className = 'status disconnected';
+        setTimeout(connect, 3000);
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
       };
     }
 
-    btn.addEventListener('click', () => {
-      ws.send('play');
+    function updatePlaybackState(state) {
+      // Обновляем состояние кнопки
+      isPlaying = state.isPlaying;
+      playBtn.textContent = isPlaying ? '⏸' : '▶';
+      
+      // Обновляем информацию о треке
+      if (state.trackInfo) {
+        trackTitleEl.textContent = state.trackInfo;
+      } else {
+        trackTitleEl.textContent = 'Not playing';
+      }
+    }
+
+    // Обработчики кнопок
+    playBtn.addEventListener('click', () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'togglePlayback' }));
+      }
     });
 
+    prevBtn.addEventListener('click', () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'prevTrack' }));
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'nextTrack' }));
+      }
+    });
+
+    // Инициализация
     connect();
   </script>
 </body>
