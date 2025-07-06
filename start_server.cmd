@@ -81,5 +81,5 @@ if %ERRORLEVEL% neq 0 (
 echo [INFO] Starting web server...
 
 node server.js
-
+pause
 ENDLOCAL
