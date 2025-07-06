@@ -80,13 +80,6 @@ if %ERRORLEVEL% neq 0 (
 :START_SERVER
 echo [INFO] Starting web server...
 
-:: Option 1: Run in current window (console will stay open)
-:: node server.js
-
-:: Option 2: Run in new window (recommended - console won't close)
-start "SoundCloud Server" cmd /c "node server.js & pause"
-
-:: Option 3: For production (using PM2 - install first: npm install -g pm2)
-:: pm2 start server.js --name "SoundCloud-Server"
+node server.js
 
 ENDLOCAL
