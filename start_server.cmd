@@ -4,56 +4,89 @@ SETLOCAL
 :: Change to the project directory
 cd /d "%~dp0"
 
+:: ===== Git Checks =====
 :: Check if Git is installed
 where git >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Git is not installed. Skipping updates.
-    goto START_SERVER
+    goto NODE_CHECKS
 )
 
 :: Check if current dir is a Git repo
 git rev-parse --is-inside-work-tree >nul 2>&1
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] This is not a Git repository. Skipping updates.
-    goto START_SERVER
+    echo [WARNING] This is not a Git repository. Skipping updates.
+    goto NODE_CHECKS
 )
 
-:: Fetch all changes (--all to update all branches/tags)
-echo [INFO] Checking for updates...
+:: Fetch all changes
+echo [INFO] Checking for repository updates...
 git fetch --all --prune
 
-:: Compare local and remote (replace 'main' with your branch)
+:: Compare local and remote branches
 git diff --quiet origin/main
 if %ERRORLEVEL% equ 0 (
     echo [INFO] Repository is up-to-date.
-    goto CHECK_INTEGRITY
+    goto NODE_CHECKS
 )
 
-:: Force update (download missing/changed files)
+:: Force update
 echo [INFO] Downloading updates...
 git reset --hard origin/main
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Failed to update repository.
-    goto START_SERVER
+    goto NODE_CHECKS
 )
 
-:CHECK_INTEGRITY
-:: Verify files (optional, for critical projects)
-echo [INFO] Verifying files...
+:: Verify repository integrity
+echo [INFO] Verifying repository integrity...
 git fsck
 if %ERRORLEVEL% neq 0 (
-    echo [WARN] Repository integrity check failed (corrupted files?). Trying to recover...
+    echo [WARNING] Repository integrity issues detected. Attempting recovery...
     git checkout --force origin/main
 )
 
-:: Install dependencies (if package.json exists)
-if exist "package.json" (
-    echo [INFO] Installing npm dependencies...
+:: ===== Node.js Checks =====
+:NODE_CHECKS
+:: Check if Node.js is installed
+where node >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Node.js is not installed. Download from https://nodejs.org/
+    pause
+    exit /b 1
+)
+
+:: Check for package.json
+if not exist "package.json" (
+    echo [ERROR] package.json not found! Cannot install dependencies.
+    pause
+    exit /b 1
+)
+
+:: Install dependencies if node_modules is missing
+if not exist "node_modules" (
+    echo [INFO] Installing Node.js dependencies...
     npm install
 )
 
+:: Check for critical modules (example: ws)
+npm list ws >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [INFO] Required module 'ws' not found. Installing...
+    npm install ws
+)
+
+:: ===== Server Startup =====
 :START_SERVER
 echo [INFO] Starting web server...
-node server.js
+
+:: Option 1: Run in current window (console will stay open)
+:: node server.js
+
+:: Option 2: Run in new window (recommended - console won't close)
+start "SoundCloud Server" cmd /c "node server.js & pause"
+
+:: Option 3: For production (using PM2 - install first: npm install -g pm2)
+:: pm2 start server.js --name "SoundCloud-Server"
 
 ENDLOCAL
