@@ -77,9 +77,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 :: ===== Server Startup =====
-:START_SERVER
-echo [INFO] Starting web server...
-
+echo [INFO] All checks completed. Starting web server...
 node server.js
-pause
+
 ENDLOCAL
