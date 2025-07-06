@@ -1,54 +1,27 @@
 @echo off
 SETLOCAL
-
-:: Change to the project directory
 cd /d "%~dp0"
 
-:: ===== Git Checks =====
-:: Check if Git is installed
+:: 1. Проверка Git и обновлений
 where git >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Git is not installed. Skipping updates.
-    goto NODE_CHECKS
-)
-
-:: Check if current dir is a Git repo
-git rev-parse --is-inside-work-tree >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [WARNING] This is not a Git repository. Skipping updates.
-    goto NODE_CHECKS
-)
-
-:: Fetch all changes
-echo [INFO] Checking for repository updates...
-git fetch --all --prune
-
-:: Compare local and remote branches
-git diff --quiet origin/main
 if %ERRORLEVEL% equ 0 (
-    echo [INFO] Repository is up-to-date.
-    goto NODE_CHECKS
+    git rev-parse --is-inside-work-tree >nul 2>&1
+    if %ERRORLEVEL% equ 0 (
+        echo [INFO] Checking for Git updates...
+        git fetch --all --prune
+        git diff --quiet origin/main
+        if %ERRORLEVEL% neq 0 (
+            echo [INFO] Updating repository...
+            git reset --hard origin/main || (
+                echo [ERROR] Failed to update repository
+                goto NODE_CHECKS
+            )
+        )
+    )
 )
 
-:: Force update
-echo [INFO] Downloading updates...
-git reset --hard origin/main
-if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Failed to update repository.
-    goto NODE_CHECKS
-)
-
-:: Verify repository integrity
-echo [INFO] Verifying repository integrity...
-git fsck
-if %ERRORLEVEL% neq 0 (
-    echo [WARNING] Repository integrity issues detected. Attempting recovery...
-    git checkout --force origin/main
-)
-
-:: ===== Node.js Checks =====
+:: 2. Проверка Node.js и зависимостей
 :NODE_CHECKS
-:: Check if Node.js is installed
 where node >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Node.js is not installed. Download from https://nodejs.org/
@@ -56,28 +29,26 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-:: Check for package.json
 if not exist "package.json" (
-    echo [ERROR] package.json not found! Cannot install dependencies.
+    echo [ERROR] package.json not found
     pause
     exit /b 1
 )
 
-:: Install dependencies if node_modules is missing
 if not exist "node_modules" (
-    echo [INFO] Installing Node.js dependencies...
+    echo [INFO] Installing dependencies...
     npm install
+) else (
+    npm list ws >nul 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo [INFO] Installing missing module: ws
+        npm install ws
+    )
 )
 
-:: Check for critical modules (example: ws)
-npm list ws >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [INFO] Required module 'ws' not found. Installing...
-    npm install ws
-)
-
-:: ===== Server Startup =====
-echo [INFO] All checks completed. Starting web server...
+:: 3. Запуск сервера
+echo [INFO] Starting server...
+echo [INFO] Press Ctrl+C to stop
 node server.js
 
 ENDLOCAL
