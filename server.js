@@ -5,18 +5,39 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, clientTracking: true });
+
+// Проверка активности клиентов
+setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (!ws.isAlive) {
+      console.log('Terminating inactive connection');
+      return ws.terminate();
+    }
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000); // Проверка каждые 30 секунд
 
 wss.on('connection', (ws) => {
   console.log('New client connected');
+  ws.isAlive = true;
+
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
 
   ws.on('message', (message) => {
-    // Просто пересылаем сообщения всем клиентам
+    // Пересылка сообщений всем клиентам
     wss.clients.forEach(client => {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
         client.send(message.toString());
       }
     });
+  });
+
+  ws.on('close', () => {
+    console.log('Client disconnected');
   });
 });
 
